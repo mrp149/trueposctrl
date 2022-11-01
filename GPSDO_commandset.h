@@ -146,7 +146,7 @@
         // SNR (dB*Hz)
         //
         // $CLOCK 1187156731 18 3
-        // GPS UNIX-timestamp (secs since 1970), but my board is off by 10 years (reporting 2007 while it is 2017)
+        // GPS timestamp (secs since 1970), only time is reliable, the FURUNO module does not backup date after Sept. 2022
         // Count of leap-seconds
         // Time figure-of-merit (1=good, 7=bad)
         //
@@ -173,7 +173,7 @@
         //
         // $KALDBG 1187203779 0.08 29.59241e3 0.120e-3 0.568 0 0
         // [Only be sent when reference is locked (state=0)]
-        // 1: GPS UNIX-timestamp (secs since 1970), but FURUNO module does not backup date adter Sept. 2022
+        // 1: GPS UNIX-timestamp (secs since 1970), only time is reliable, the FURUNO module does not backup date after Sept. 2022
         // 2: Floating point number.
         //     Resets to 0 at time of lock (and at end of holdover).
         // 3: Floating point number. Magnitude is similar to PPS3, but does not track it so well.
