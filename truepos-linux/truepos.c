@@ -35,10 +35,12 @@
 
 #ifdef UART
 #define UART_Init()   uart_init()
+#define UART_Stop()   uart_stop()
 #define UART_Tx(x)    printf("\nWRITE: %s", x);uart_tx(x, strlen(x))
 #define UART_Rx()     uart_rx()
 #else
 #define UART_Init()
+#define UART_Stop()
 #define UART_Tx(x)    printf("\nWRITE: %s", x)
 #define UART_Rx()     getchar()
 #endif
@@ -134,7 +136,6 @@ void displayRequestRefresh() {
 		"Wait B","2/3",         // 21
 		"Wait B","3/3"          // 22
 };
-
 
     d = &dispState;
 

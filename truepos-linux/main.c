@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "truepos.h"
 /* USER CODE END Includes */
@@ -16,17 +17,11 @@ UART_HandleTypeDef TP_UART;
 int main(void)
 {
 
-  /* USER CODE BEGIN RTOS_QUEUES */
-    TruePosInit(&TP_UART, TP_UART_ID);
-  /* USER CODE END RTOS_QUEUES */
-
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-
     for(;;)
     {
+        TruePosInit(&TP_UART, TP_UART_ID);
         TruePosReadBuffer();
-        return 0;
+        sleep(1);		// Just make sure UART is settled
     }
-
 }

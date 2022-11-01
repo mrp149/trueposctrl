@@ -8,10 +8,14 @@
 #include <termios.h> // Contains POSIX terminal control definitions
 #include <unistd.h> // write(), read(), close()
 
+#ifdef TEST
+#define UART_NAME  "/dev/ttyUSB0"
+#else
+#define UART_NAME  "/dev/ttyS0"
+#endif
 
-/* static */
-  int serial_port =  -1;
-  struct termios tty;
+static int serial_port =  -1;
+static struct termios tty;
 
 int uart_init() {
 
@@ -24,10 +28,7 @@ int uart_init() {
   }
 
   // Open the serial port. Change device path as needed (currently set to an standard FTDI USB-UART cable type device)
-  serial_port = open("/dev/ttyS0", O_RDWR);
-
-  // Create new termios struct, we call it 'tty' for convention
-//  struct termios tty;
+  serial_port = open(UART_NAME, O_RDWR);
 
   // Read in existing settings, and handle any error
   if(tcgetattr(serial_port, &tty) != 0) {
@@ -80,9 +81,20 @@ int uart_init() {
 }
 
 
+// Stop setrial port
+int uart_stop() {
+
+  if (serial_port != -1) {
+      close(serial_port);
+      serial_port = -1;
+      return 1;
+  }
+  return 0;
+}
+
 
 // Write to serial port
-int uart_tx(const char * msg, size_t ln) {
+int uart_tx(char * msg, size_t ln) {
 
   if (serial_port != -1)
       return write(serial_port, msg, ln);
@@ -91,30 +103,32 @@ int uart_tx(const char * msg, size_t ln) {
 
 
 // Read from setrial port
- int uart_rx() {
+int uart_rx() {
   char ch;
+
   if (serial_port == -1)
       return EOF;
   if(read(serial_port, &ch, sizeof(ch)) != sizeof(ch))
       return EOF;
   return ch;
 }
+
+
 #ifdef TEST
 
 int main(){
-  unsigned char msg[] = { 'H', 'e', 'l', 'l', 'o', '\r' };
-  // Allocate memory for read buffer, set size according to your needs
-  char read_buf [256];
+  char msg[] = { 'H', 'e', 'l', 'l', 'o', '\r' };
 
   uart_init();
 
-//  uart_tx(msg, sizeof(msg));
+  uart_tx(msg, sizeof(msg));
 
- while(1){
+  while(1){
+     printf("%c", uart_rx());
+  }
 
-  printf("%c", uart_rx());
- }
-  close(serial_port);
+  uart_stop();
+
   return 0; // success
 }
 
