@@ -1,13 +1,13 @@
         // Based on FW 12.0.1
         // Commands:
-        // 
+        //
         // $PROCEED [Send at startup to get past the bootloader]
         //
         // $FACT [Factory preset]
         // $GETBDELAY [returns board delay, nanoseconds]
         // $GETDELAY [returns cable delay, nanoseconds]
         // $GETPOS [return position ]
-        // $GETSCALEFACTOR [Returns a float, such as 3.742106e-3. Value is crystal's gain in Hz/mV.] 
+        // $GETSCALEFACTOR [Returns a float, such as 3.742106e-3. Value is crystal's gain in Hz/mV.]
         // $GETVER [returns version info]
         // $KALDBG <0|1> [Enable reporting of Kalman filter parameters]
         // $PPSDBG <0|1> [Enable or disable timing information every second]
@@ -91,7 +91,7 @@
         // $UPDATE FLASH
 				// parameters in flash have been updated.
 				//
-        // $STATUS 
+        // $STATUS
         // 1: (Maybe 10 MHz bad, based on packrat docs)
         // 2: (Maybe PPS bad, based on packrat docs)
         // 3: Antenna is bad? 0=good
@@ -113,12 +113,12 @@
         // 4: Measured phase offset? Units seem something like 6.5*ns
         // 5: PPS offset from $PFEC,GPrrm message - range from -15 to +14
         // 6: PPS status from $PFEC,GPrrm message
-        // 7: TRAIM status from $PFEC,GPrrm message 
+        // 7: TRAIM status from $PFEC,GPrrm message
         // 8: Always 0.0 - temperature on 12.1.1 firmware
-        // 
+        //
         // $EXTSTATUS
         // 1: SurveyStatus [0=normal, 1=surveying]
-        // 2: Number of sats used for positioning, copied from $GPGGA message 
+        // 2: Number of sats used for positioning, copied from $GPGGA message
         // 3: HDOP if 2Dfix, PDOP if 3D fix, copied from $GPGGA message
         // 4: Temperature (close to FPGA? close to oven?) (my board reads about 45C)
 				// 5: gps discard counter - error related ?
@@ -128,7 +128,7 @@
         // Longitude
         // Elevation_MSL
         // Correction to MSL to get WGS elevation (add this value to MSL to get WGS ellipsoid)
-        // Traim status from GPS. From Furuno GPrrm msg (0 = possible to detect and remove abnormalities, 1 = possible to detect, 2 = not possible to detect) 
+        // Traim status from GPS. From Furuno GPrrm msg (0 = possible to detect and remove abnormalities, 1 = possible to detect, 2 = not possible to detect)
         //
         // $SURVEY 40448488 -86915296 225 -34 7129
         // [sent during a survey]
@@ -163,17 +163,17 @@
         //
         // $WSAT 4 138 209 38 0
         // [WAAS Satellite info, same format as $SAT]
-        // 
+        //
         // $SET1PPS
         // [Sent at boot, but also in response to a $SET1PPS command. Sent every 20 seconds.]
         //
 		// $SETGAIN 1.00
 		// [Sent is response to $SETGAIN <n> command]
         // 1: Value of gain. This should be n/100, and is a float.
-        // 
+        //
         // $KALDBG 1187203779 0.08 29.59241e3 0.120e-3 0.568 0 0
         // [Only be sent when reference is locked (state=0)]
-        // 1: GPS UNIX-timestamp (secs since 1970), but my board is off by 10 years (reporting 2007 while it is 2017)
+        // 1: GPS UNIX-timestamp (secs since 1970), but FURUNO module does not backup date adter Sept. 2022
         // 2: Floating point number.
         //     Resets to 0 at time of lock (and at end of holdover).
         // 3: Floating point number. Magnitude is similar to PPS3, but does not track it so well.
