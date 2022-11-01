@@ -10,7 +10,7 @@
 
 
 /* static */
-  int serial_port =  -1; 
+  int serial_port =  -1;
   struct termios tty;
 
 int uart_init() {
@@ -39,7 +39,7 @@ int uart_init() {
 
   tty.c_cflag &= ~PARENB; // Clear parity bit, disabling parity (most common)
   tty.c_cflag &= ~CSTOPB; // Clear stop field, only one stop bit used in communication (most common)
-  tty.c_cflag &= ~CSIZE; // Clear all bits that set the data size 
+  tty.c_cflag &= ~CSIZE; // Clear all bits that set the data size
   tty.c_cflag |= CS8; // 8 bits per byte (most common)
   tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
   tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
@@ -97,7 +97,7 @@ int uart_tx(const char * msg, size_t ln) {
       return EOF;
   if(read(serial_port, &ch, sizeof(ch)) != sizeof(ch))
       return EOF;
-  return ch;    
+  return ch;
 }
 #ifdef TEST
 
@@ -111,7 +111,7 @@ int main(){
 //  uart_tx(msg, sizeof(msg));
 
  while(1){
-  
+
   printf("%c", uart_rx());
  }
   close(serial_port);

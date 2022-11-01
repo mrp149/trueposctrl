@@ -19,7 +19,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_QUEUES */
     TruePosInit(&TP_UART, TP_UART_ID);
   /* USER CODE END RTOS_QUEUES */
- 
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 

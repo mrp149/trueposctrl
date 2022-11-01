@@ -41,7 +41,7 @@
 #define UART_Init()
 #define UART_Tx(x)    printf("\nWRITE: %s", x)
 #define UART_Rx()     getchar()
-#endif 
+#endif
 
 #define CMDBUF_LEN 128
 char cmdBuf[CMDBUF_LEN];
@@ -108,7 +108,7 @@ void displayRequestRefresh() {
     const char * str2;   // Status 2
     char  nl;            // Line feed
     char voltage[10];    // The voltage on the oscillator
-    
+
     const char* const statusLabels[] = {
 		"Locked",NULL,          // 0
 		"Recovery",NULL,        // 1
@@ -135,7 +135,7 @@ void displayRequestRefresh() {
 		"Wait B","3/3"          // 22
 };
 
-    
+
     d = &dispState;
 
 	/* State */
@@ -164,7 +164,7 @@ void displayRequestRefresh() {
 	} else {
 	    sprintf(voltage, "%5.2f", d->Vset_uV);
 	}
-	// The optut: 
+	// The optut:
 	//     GPS time, # Sat, Voltage, dV, Phase, Offset, PPS Status, PDOP, Locked time, Status
 	printf("%s %8s GPS, NS %2d, Vo %s dV %5.2f, Ph %4d of %3d, PPS %1d, DOP %5.2f, Lck %4d, St %2d: %s %s\r",
 	    LockOn,
@@ -181,7 +181,7 @@ void displayRequestRefresh() {
     	str,
     	str2
 	);
-	    
+
 		lastvoltage = d->Vset_uV;
         fflush(stdout);
 }
@@ -221,7 +221,7 @@ void TruePosReadBuffer() {
 }
 
 static void noteTx(char *msg) {
-//  Log implementation 
+//  Log implementation
 //	printf("%s", msg);
 }
 
@@ -301,7 +301,7 @@ static void HandleCommand() {
     states less often)
 
  3: Floating point number. DAC set value. Tends towards 29e3 on my board.
-         Proportional to the DAC voltage On my RevC CTS board, 
+         Proportional to the DAC voltage On my RevC CTS board,
          Vbias ~= 6.25e-5*PPS3. This may make sense for a 4.096 V reference:
          4.096/2^16=6.25e-5 During startup, it is not put in the result string
          (this field is blank, so two sequential space characters are in the
@@ -309,7 +309,7 @@ static void HandleCommand() {
  4: Measured phase offset? Units seem something like 6.5*ns
  5: PPS offset from $PFEC,GPrrm message - range from -15 to +14
  6: PPS status from $PFEC,GPrrm message
- 7: TRAIM status from $PFEC,GPrrm message 
+ 7: TRAIM status from $PFEC,GPrrm message
  8: Always 0.0 - temperature on 12.1.1 firmware
 
 */
@@ -366,7 +366,7 @@ static void HandlePPSDbgMsg() {
 
  $EXTSTATUS
  1: SurveyStatus [0=normal, 1=surveying]
- 2: Number of sats used for positioning, copied from $GPGGA message 
+ 2: Number of sats used for positioning, copied from $GPGGA message
  3: HDOP if 2Dfix, PDOP if 3D fix, copied from $GPGGA message
  4: Temperature (close to FPGA? close to oven?) (my board reads about 45C)
  5: gps discard counter - error related ?
@@ -404,7 +404,7 @@ static void HandleExtStatusMsg() {
 /*
 
  $CLOCK 1187156731 18 3
- 1: GPS timestamp (secs since 1970), FURUNO does not back up the date after Sept. 2022 
+ 1: GPS timestamp (secs since 1970), FURUNO does not back up the date after Sept. 2022
  2: Count of leap-seconds
  3: Time figure-of-merit (1=good, 7=bad)
 
@@ -460,7 +460,7 @@ static void HandleSurveyMsg() {
 
 /*
 
- $STATUS 
+ $STATUS
  1: (Maybe 10 MHz bad, based on packrat docs)
  2: (Maybe PPS bad, based on packrat docs)
  3: Antenna is bad? 0=good
