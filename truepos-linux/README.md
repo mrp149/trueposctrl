@@ -13,3 +13,4 @@ is right now, right? This program will help you make the right decision.
 
 Currently, it mostly works.
 
+See new-command.txt for details on the available commands.
