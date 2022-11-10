@@ -22,6 +22,7 @@ int main(void)
     {
         TruePosInit(&TP_UART, TP_UART_ID);
         TruePosReadBuffer();
+        TruePosStop();
         sleep(1);		// Just make sure UART is settled
     }
 }

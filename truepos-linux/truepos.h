@@ -54,6 +54,7 @@ extern dispState_struct dispState;
 void StartDisplayTask(void const * argument);
 void displayRequestRefresh();
 
-void TruePosReadBuffer();
 void TruePosInit(UART_HandleTypeDef *uartPtr, uint16_t id);
+void TruePosStop();
+void TruePosReadBuffer();
 #endif

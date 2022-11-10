@@ -32,6 +32,7 @@
 #define INFO_PROCEED "$TX PROCEED\r\n"
 #define INFO_PPSDBG1 "$TX PPSDBG 1\r\n"
 
+#define HDRCNT 15    // Repeat HDR every 15 lines
 
 #ifdef UART
 #define UART_Init()   uart_init()
@@ -68,6 +69,10 @@ void TruePosInit(UART_HandleTypeDef *uartPtr, uint16_t id) {
 	UART_Init();
 }
 
+void TruePosStop() {
+	UART_Stop();
+}
+
 
 
 static int lastStatusFlags = 0;
@@ -75,7 +80,7 @@ static int lastStatus = 0;
 static float lastvoltage = 0.0f;
 static int  lastpps = 0;
 
-static char * LockOn = " CLK:";
+static char * LockOn = " CLK";
 
 static int statusChanged() {
 
@@ -110,6 +115,8 @@ void displayRequestRefresh() {
     const char * str2;   // Status 2
     char  nl;            // Line feed
     char voltage[10];    // The voltage on the oscillator
+
+    static int  lncnt = 0;      // Conter for the Header refresher
 
     const char* const statusLabels[] = {
 		"Locked",NULL,          // 0
@@ -157,7 +164,7 @@ void displayRequestRefresh() {
     }
 
 
-	if(statusChanged())
+//	if(statusChanged())
 		putchar('\n');
 
 	if (d->Vset_uV == 0.0f) {
@@ -165,9 +172,17 @@ void displayRequestRefresh() {
 	} else {
 	    sprintf(voltage, "%5.2f", d->Vset_uV);
 	}
+	if (lncnt == 0) {
 	// The optut:
-	//     GPS time, # Sat, Voltage, dV, Phase, Offset, PPS Status, PDOP, Locked time, Status
-	printf("%s %8s GPS, NS %2d, Vo %s dV %5.2f, Ph %4d of %3d, PPS %1d, DOP %5.2f, Lck %4d, St %2d: %s %s\r",
+	//     GPS time, #Sat, Voltage, dV, Phase, Offset, PPS Status, PDOP, Locked time, Status
+    // LOCK GPS time Sat  Voltage    dV Pha/Off  P/T  PDOP LokTM Status
+    //  CLK: 17:24:55  7, 34804.64  0.00  -7   0  0 0  0.38,    0  22: Wait B 3/3
+        printf("LOCK GPS time Sat  Voltage    dV Pha/Off P:T PDOP Lock Status\n");
+	}
+    lncnt = ++lncnt % HDRCNT;
+//	printf("GPS time, #Sat, Voltage, dV, Phase, Offset, PPS, TRA, PDOP, Locked, Status\n");
+	printf("%s %8s %2d, %s %+4.2f%4d %3d %1d:%1d %3.2f %4d %2d: %s %s\r",
+//	printf("%s %8s GPS, NS %2d, Vo %s dV %5.2f, Ph %4d of %3d, PPS %1d, DOP %5.2f, Lck %4d, St %2d: %s %s\r",
 	    LockOn,
     	convert_gps_time(),
     	d->NumSats,
@@ -176,6 +191,7 @@ void displayRequestRefresh() {
     	d->PPSPhase,
     	d->PPSOffset,
     	d->PPSStatus,
+    	d->TRAIM,
     	d->DOP,
     	(d->LockStartClock?d->Clock - d->LockStartClock:0),
     	d->status,
@@ -538,11 +554,11 @@ static void HandleStatusMsg() {
 static void HandleStatusCode(uint8_t code) {
 	dispState.status = code;
 	if(code==0) {
-		LockOn = "LOCK:";
+		LockOn = "LOCK";
 		if(dispState.LockStartClock == 0)
 			dispState.LockStartClock = dispState.Clock;
 	}else {
-		LockOn = " CLK:";
+		LockOn = " CLK";
 		dispState.LockStartClock = 0;
 	}
 }

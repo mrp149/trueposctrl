@@ -1,13 +1,14 @@
  NEW COMMAND LIST
 
- Based on FW 12.0.1      $Revision: 1.4 $ on $Date: 2022/11/01 20:46:03 $ UTC
+ Based on FW 12.0.1 $Revision: 1.7 $ on $Date: 2022/11/06 02:16:00 $ UTC
 
 
 ---- Commands:
 
  $PROCEED           [Send at startup to get past the bootloader]
 
- $FACT              [Factory preset]
+ $FACT              [Factory preset, reset all internal values including OXCO
+                    Training, see $TRAINOXCO notes.]
 
 ---- Get commands:
 
@@ -19,7 +20,7 @@
 
 ---- Other unknown get commands:
 
- $GETA                 [Returns -1; Attenuator?]
+ $GETA              [Returns -1; Attenuator?]
  $GETP              [Returns -1 255; Potentiometer?]
 
 
@@ -31,7 +32,8 @@
 
  $RESET             [Unit software reset]
 
- $SETBDELAY <n>     [-32 <= n <= 32, Set board delay, PPS4 units (roughly 5 or 6 ns). PPS4 is controlled to equal this value]
+ $SETBDELAY <n>     [-32 <= n <= 32, Set board delay, PPS4 units (roughly 5 or 6 ns). PPS4 is
+                    controlled to equal this value]
 
  $SETDELAY <n>      [-9999 <= n <= +9999 Set cable delay, 0.1us unit (100ns)]
 
@@ -39,24 +41,44 @@
 
  $SURVEY <n>        [survey for n hours, default is 8, 1<=n<=49]
 
- $TRAINOXCO         [Start OXCO Training. This restarts the board ($PROCEED needed), and measures freq
-                change with 500 ADC count. See result with $GETSCALINGFACTOR.]
-                this executes $FACT command.
+ $TRAINOXCO         [Start OXCO Training. This restarts the board ($PROCEED needed), and
+                    measures freq change with 500 ADC count. See result with $GETSCALEFACTOR.
+                    This executes $FACT command.
 
- $SET1PPS x y       This formats GPrrs message for Furuno - $PFEC,GPrrs,x,100,y
-                x - 0 = traim off, 1 = traim on
-                y - 0-nopps output, 1-always output pps, 2-output in ordinary way, 3 - output only when sufficient satellites are tracked
-                Internally they use "$SET1PPS 1 1" and "$SET1PPS 1 3"
+                    It'll restart the unit ($PROCEED needed), wait a little bit for things to
+                    warm up, and then do OXCO training. During training, status is 7.
 
- $SETGAIN <n>       [Sets gain Parameter, n is integer, in hundreths. Maybe a multiplication factor for the DAC adjustment.]
+                    It measures the oscillator frequency at two points separated by 500 ADC counts.
+                    Once it's done, status will go 9,10,11,12,13,0,19,20,21,22,1,0.
+                    The DAC voltage changes every second when status=1. It changes only every five
+                    seconds when status=0.
+
+                    If you did $FACT before $TRAINOXCO, it will reset the last possition in
+                    GPSDO, and the trainnig will not happens because GPS can't lock. In terms of
+                    setting up boards, you should do a survey first ($SURVEY #), and write down
+                    the location where it says you are it stores it in EEPROM automatically.
+                    Set your location later with the $SETPOS command. Finally after
+                    it's warmed up for a while (>1 hour in an enclosure like a cardboard box),
+                    you should run $TRAINOCXO.
+
+
+ $SET1PPS x y       This formats GPrrs message for Furuno:
+                    $PFEC,GPrrs,x,100,y x - 0 = traim off, 1 = traim on
+
+                    y - 0-nopps output, 1-always output pps, 2-output in ordinary way,
+                    3 - output only when sufficient satellites are tracked Internally they use
+                    "$SET1PPS 1 1" and "$SET1PPS 1 3"
+
+ $SETGAIN <n>       [Sets gain Parameter, n is integer, in hundreths. Maybe a multiplication
+                    factor for the DAC adjustment.]
 
  $ESN xxx           programs serial number to xxx
 
  $REPORT [x [y [z]]]  set reporting time (optional)
-                x - time report period (in sec), this controls $CLOCK message
-                y - sat report (on/off), control sending of $SAT, $WSAT
-                z - state report period (in sec), $STATUS and $EXTSTATUS
-                reports all SAT and WSAT messages stored in mcu if reporting enabled
+                    x - time report period (in sec), this controls $CLOCK message
+                    y - sat report (on/off), control sending of $SAT, $WSAT
+                    z - state report period (in sec), $STATUS and $EXTSTATUS
+                    reports all SAT and WSAT messages stored in mcu if reporting enabled
 
  $SETINTG num       Sets integrator ?
 
@@ -65,10 +87,11 @@
  $SPIW num          Writes num into DAC - manual osc tunning ? (probably needs manual holdover)
 
  $FxRxxH            Toggle forced holdover
-                if state == 0 set state = 4
-                else if state == 4 set state = 20.
+                    if state == 0 set state = 4
+                    else if state == 4 set state = 20.
 
- $FxRxxU            Get leap second from config saved in flash, when no leap second from GPS is available
+ $FxRxxU            Get leap second from config saved in flash, when no leap second from GPS is
+                    available
 
  $JAM               Jam sync - whatever that means
 
@@ -77,7 +100,7 @@
  $EBG *             Copy all messages from GPS port to communication port (0 to turn off)
 
  $Fxxx              Sends nmea message to GPS
-                xxx needs to start with $ (eg: $F$PFEC....)
+                    xxx needs to start with $ (eg: $F$PFEC....)
 
  $ELOAD             GPS firmware loading ... dont bother
  $AGP               APGS load
@@ -88,27 +111,32 @@
  $XBG x             Console clone (whatever that is)
  $RBG x             Raw debug
  $CBG x             Command debug
-                last 3 debugs are only for jtag uart, they dont change output for comm port
+                    last 3 debugs are only for jtag uart, they dont change output for comm port
 
 ---- Unknown commands:
 
- $TRAIM x -         Disables traim evaluation in gpsdo? 0 - skips some computation internally
-                Note: TRAIM works when fixed viewpoint mode is selected. When TRAIM is set in fixed viewpoint mode with a valid position
-                entered, TRAIM operates with 2 satellites that can be used to calculate the position. Two of these satellites are
-                available, and the receiver can generate an alarm if an abnormality is detected on any of these satellites. When 3 or
-                more satellites are available, the receiver can isolate the anomalous satellite and exclude it from the position
-                calculation.
+ $TRAIM x -         Disables TRAIM evaluation in gpsdo? 0 - skips some computation internally
+
+                    Note: TRAIM works when fixed viewpoint mode is selected. When TRAIM is set
+                    in fixed viewpoint mode with a valid position entered, TRAIM operates with
+                    2 satellites that can be used to calculate the position. Two of these
+                    satellites are available, and the receiver can generate an alarm if an
+                    abnormality is detected on any of these satellites. When 3 or more
+                    satellites are available, the receiver can isolate the anomalous satellite
+                    and exclude it from the position calculation.
 
 ---- Response Messages:
 
-$UPDATE FLASH      Parameters in flash have been updated.
+ $UPDATE FLASH      Parameters in flash have been updated.
 
  $STATUS 1 1 1 362 3 1
  1: (Maybe 10 MHz bad, based on packrat docs)
  2: (Maybe PPS bad, based on packrat docs)
  3: Antenna is bad? 0=good
  4: Holdover duration (secs)
- 5: Number of sats tracked (different than, but within 2 of $EXTSTATUS, perhaps only counts channels 0-7???, range is 0-8)
+ 5: Number of sats tracked (different than, but within 2 of $EXTSTATUS, perhaps only counts
+    channels 0-7???, range is 0-8)
+
  Status [Locked = 0, Recovery = 1, (Forced holdover?)=3, Train OXCO=7, Holdover = 8,
         [Startup A/B/C/D = 10/11/2/19 ]
         [ (transition from 1 to 0) = (14,15,16,17,18) ] Wait states when transitioning
@@ -141,6 +169,7 @@ $UPDATE FLASH      Parameters in flash have been updated.
 
  $PPSDBG 1187153266 3 25.28081e3 -253 -6 2 2 0.0
  $PPSDBG 2 0.0 [Fewer parmaters when in holdover?]
+
  1: Same as clock (GPS Time)  FURUNO does not back up date after Sept. 2022, in the conversion only GPS time is reliable.
  2: Same as $STATUS status, but updates much more often (and seems to skip states less often)
  3: Floating point number. DAC set value. Tends towards 29e3 on my board. Proportional to the DAC voltage
@@ -164,7 +193,8 @@ $UPDATE FLASH      Parameters in flash have been updated.
  2: Longitude
  3: Elevation_MSL
  4: Correction to MSL to get WGS elevation (add this value to MSL to get WGS ellipsoid)
- 5: Traim status from GPS. From Furuno GPrrm msg: 
+ 5: Traim status from GPS:
+                      From FURUNO GPrrm msg:
                       0 = possible to detect and remove abnormalities
                       1 = possible to detect
                       2 = not possible to detect

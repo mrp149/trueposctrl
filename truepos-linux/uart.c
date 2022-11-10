@@ -21,7 +21,7 @@ int uart_init() {
 
   // close the port if it is already open
   if(serial_port != -1) {
-      printf("Abort the port is already opened %i\n", serial_port);
+      printf("Error the port is already opened %i. Closing the port\n", serial_port);
       close(serial_port);
       serial_port = -1;
       return 1;
@@ -29,6 +29,10 @@ int uart_init() {
 
   // Open the serial port. Change device path as needed (currently set to an standard FTDI USB-UART cable type device)
   serial_port = open(UART_NAME, O_RDWR);
+  if(serial_port == -1) {
+      printf("Error on the port opening: %i: %s\n", errno, strerror(errno));
+      return 1;
+  }
 
   // Read in existing settings, and handle any error
   if(tcgetattr(serial_port, &tty) != 0) {
@@ -114,7 +118,7 @@ int uart_rx() {
 }
 
 
-#ifdef TEST
+#ifdef TEST_UART
 
 int main(){
   char msg[] = { 'H', 'e', 'l', 'l', 'o', '\r' };
