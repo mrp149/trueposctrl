@@ -15,6 +15,7 @@
 #include <time.h>
 
 #include "uart.h"
+#include "rxtcp.h"
 #include "truepos.h"
 
 #define RSP_GETPOS "$GETPOS"
@@ -34,12 +35,19 @@
 
 #define HDRCNT 15    // Repeat HDR every 15 lines
 
+#ifdef RXTCP
+#define UART_Init()   rxtcp_init()
+#define UART_Stop()   rxtcp_stop()
+#define UART_Tx(x)    printf("\nWRITE: %s", x);rxtcp_tx(x, strlen(x))
+#define UART_Rx()     rxtcp_rx()
+#endif
 #ifdef UART
 #define UART_Init()   uart_init()
 #define UART_Stop()   uart_stop()
 #define UART_Tx(x)    printf("\nWRITE: %s", x);uart_tx(x, strlen(x))
 #define UART_Rx()     uart_rx()
-#else
+#endif
+#ifdef PIPE
 #define UART_Init()
 #define UART_Stop()
 #define UART_Tx(x)    printf("\nWRITE: %s", x)
@@ -61,7 +69,7 @@ static void HandleStatusCode(uint8_t code);
 static void HandleExtStatusMsg();
 static void HandleClockMsg();
 static void HandleSurveyMsg();
-static void noteTx(char *msg);
+static void notePr(char *msg);
 
 void TruePosInit(UART_HandleTypeDef *uartPtr, uint16_t id) {
 	uart = uartPtr;
@@ -215,7 +223,7 @@ void TruePosReadBuffer() {
 				cmdBuf[cmdBufLen] = '\r';
 				cmdBuf[cmdBufLen+1] = '\n';
 				cmdBuf[cmdBufLen+2] = '\0';
-				noteTx(cmdBuf);
+				notePr(cmdBuf);
 				HandleCommand();
 				cmdBufLen = 0;
 
@@ -237,9 +245,9 @@ void TruePosReadBuffer() {
 	} while(!stop);
 }
 
-static void noteTx(char *msg) {
+static void notePr(char *msg) {
 //  Log implementation
-//	printf("%s", msg);
+//	printf("%s\n", msg);
 }
 
 static void HandleCommand() {
@@ -249,8 +257,8 @@ static void HandleCommand() {
 		if(clockNoPPSDBG >= 3) {
 			clockNoPPSDBG = 0;
 			ppsdbgReceived = 0;
-			noteTx(INFO_PPSDBG1);
-			UART_Tx("$PPSDBG 1\r\n");
+//			notePr(INFO_PPSDBG1);
+//			UART_Tx("$PPSDBG 1\r\n");
 		}
 		HandleClockMsg();
 		if(!ppsdbgReceived)
@@ -270,12 +278,12 @@ static void HandleCommand() {
 	}else if(!strncmp(cmdBuf, RSP_SETPOS, sizeof(RSP_SETPOS)-1)) {
 		if(dispState.statusFlags & SF_STARTUP) {
 			ppsdbgReceived = 0;
-			noteTx(INFO_PPSDBG1);
-			UART_Tx("$PPSDBG 1\r\n");
+//			notePr(INFO_PPSDBG1);
+//			UART_Tx("$PPSDBG 1\r\n");
 		}
 	} else if(!strncmp(cmdBuf, RSP_GETVER, sizeof(RSP_GETVER)-1)) {
 		if(strstr(cmdBuf, "BOOT") != NULL) {
-			noteTx(INFO_PROCEED);
+			notePr(INFO_PROCEED);
 			UART_Tx("$PROCEED\r\n");
 			dispState.statusFlags |= SF_STARTUP;
 			dispState.status = 5;  // Startup
@@ -381,7 +389,7 @@ static void HandlePPSDbgMsg() {
 
 /*
 
- $EXTSTATUS
+ $EXTSTATUS 0 3 00.58 42.82
  1: SurveyStatus [0=normal, 1=surveying]
  2: Number of sats used for positioning, copied from $GPGGA message
  3: HDOP if 2Dfix, PDOP if 3D fix, copied from $GPGGA message
@@ -430,8 +438,8 @@ static void HandleExtStatusMsg() {
 static void HandleClockMsg() {
 	char *t;
 	char *saveptr;
-	int i=0;
-	t = strtok_r(cmdBuf, " \r\n",&saveptr);
+	int i = 0;
+	t = strtok_r(cmdBuf, " \r\n", &saveptr);
 	while(t != NULL) {
 		switch(i) {
 		case 1: // GPS time, FURUNO does not back up the date after Sept. 2022
@@ -442,7 +450,7 @@ static void HandleClockMsg() {
 			break;
 		}
 		i++;
-		t = strtok_r(NULL, " \r\n",&saveptr);
+		t = strtok_r(NULL, " \r\n", &saveptr);
 	}
 }
 
@@ -477,13 +485,14 @@ static void HandleSurveyMsg() {
 
 /*
 
- $STATUS
+ $STATUS 0 0 0 719 3 8
  1: (Maybe 10 MHz bad, based on packrat docs)
  2: (Maybe PPS bad, based on packrat docs)
  3: Antenna is bad? 0=good
  4: Holdover duration (secs)
  5: Number of sats tracked (different than, but within 2 of $EXTSTATUS, perhaps only counts channels 0-7???, range is 0-8)
- Status [Locked = 0, Recovery = 1, (Forced holdover?)=3, Train OXCO=7, Holdover = 8,
+ 6: Status:
+        [Locked = 0, Recovery = 1, (Forced holdover?)=3, Train OXCO=7, Holdover = 8,
         [Startup A/B/C/D = 10/11/2/19 ]
         [ (transition from 1 to 0) = (14,15,16,17,18) ] Wait states when transitioning
         [ (transition from 0 to 1) = (20,21,22) ]  Wait states when transitioning
@@ -524,13 +533,13 @@ static void HandleStatusMsg() {
 	t = strtok_r(cmdBuf, " \r\n",&saveptr);
 	while(t != NULL) {
 		switch(i) {
-		case 1: // bad 10MHZ
+		case 1: // bad 10MHz
 			if(t[0] != '0')
 				dispState.statusFlags |= SF_BAD_10M;
 			else
 				dispState.statusFlags &= ~SF_BAD_10M;
 			break;
-		case 2: // bad antenna
+		case 2: // bad pps
 			if(t[0] != '0')
 				dispState.statusFlags |= SF_BAD_PPS;
 			else
@@ -553,11 +562,11 @@ static void HandleStatusMsg() {
 }
 static void HandleStatusCode(uint8_t code) {
 	dispState.status = code;
-	if(code==0) {
+	if(code == 0) {
 		LockOn = "LOCK";
 		if(dispState.LockStartClock == 0)
 			dispState.LockStartClock = dispState.Clock;
-	}else {
+	} else {
 		LockOn = " CLK";
 		dispState.LockStartClock = 0;
 	}
