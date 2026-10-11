@@ -201,15 +201,15 @@ displayRequestRefresh ()
   if (lncnt == 0)
     {
       // The optut:
-      //     GPS time, #Sat, Voltage, dV, Phase, Offset, PPS Status, PDOP, Locked time, Status
+      // GPS time, #Sat, Voltage, dV, Phase, Offset, PPS Status, PDOP, Locked time, Status
       // LOCK GPS time Sat  Voltage    dV Pha/Off  P/T  PDOP LokTM Status
-      //  CLK: 17:24:55  7, 34804.64  0.00  -7   0  0 0  0.38,    0  22: Wait B 3/3
+      // CLK: 17:24:55  7, 34804.64  0.00  -7   0  0 0  0.38,    0  22: Wait B 3/3
       printf
-	("LOCK GPS time Sat  Voltage    dV Pha/Off P:T PDOP Lock Status\n");
+	("LOCK GPS time Sat  Voltage    dV Pha/Off P:T PDOP LockT Status    Holdover\n");
     }
   lncnt = ++lncnt % HDRCNT;
-//      printf("GPS time, #Sat, Voltage, dV, Phase, Offset, PPS, TRA, PDOP, Locked, Status\n");
-  printf ("%s %8s %2d, %s %+4.2f%4d %3d %1d:%1d %3.2f %4d %2d: %s %s\r",
+//      printf("GPS time, #Sat, Voltage, dV, Phase, Offset, PPS, TRA, PDOP, Locked, Status,   HoldOver\n");
+  printf ("%s %8s %2d, %s %+4.2f%4d %3d %1d:%1d %3.2f %5d %2d: %s %s %d\r",
 //      printf("%s %8s GPS, NS %2d, Vo %s dV %5.2f, Ph %4d of %3d, PPS %1d, DOP %5.2f, Lck %4d, St %2d: %s %s\r",
 	  LockOn,
 	  convert_gps_time (),
@@ -222,7 +222,7 @@ displayRequestRefresh ()
 	  d->TRAIM,
 	  d->DOP,
 	  (d->LockStartClock ? d->Clock - d->LockStartClock : 0),
-	  d->status, str, str2);
+	  d->status, str, str2, d->HoldOver);
 
   lastvoltage = d->Vset_uV;
   fflush (stdout);
@@ -630,6 +630,12 @@ HandleStatusMsg ()
 	    dispState.statusFlags |= SF_BAD_ANTENNA;
 	  else
 	    dispState.statusFlags &= ~SF_BAD_ANTENNA;
+	  break;
+	case 4:		// HoldOver
+	  dispState.HoldOver = strtoul (t, NULL, 10);
+	  break;
+	case 5:		// NSats
+	  dispState.NumSats = strtoul (t, NULL, 10);
 	  break;
 	case 6:
 	  x = atoi (t);
