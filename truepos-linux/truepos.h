@@ -30,7 +30,7 @@ typedef struct
   uint8_t NumSats;
   float Temp;
   uint32_t Clock;
-  uint8_t UTCOffset;
+  uint32_t UTCOffset;
   uint32_t HoldOver;
   float Vset_uV;
   float DOP;

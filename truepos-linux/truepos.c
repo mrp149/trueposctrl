@@ -56,7 +56,7 @@
 
 #define CMDBUF_LEN 128
 char cmdBuf[CMDBUF_LEN];
-static uint8_t ppsdbgReceived = 0;
+static uint32_t ppsdbgReceived = 0;
 static int cmdBufLen = 0;
 static UART_HandleTypeDef *uart;
 static uint16_t uart_id;
@@ -110,20 +110,25 @@ statusChanged ()
   return 0;
 }
 
-static char *
+static char gps_time_buf[10];
+static char utc_time_buf[10];
+
+void
 convert_gps_time ()
 {
 
   time_t gpstime = dispState.Clock;
   struct tm ts;
-  static char buf[10];
-
   // Format time, "hh:mm:ss" FURUNO does not back up the date after Sept. 2022
   ts = *gmtime (&gpstime);
-  strftime (buf, sizeof (buf), "%H:%M:%S", &ts);
+  strftime (gps_time_buf, sizeof (gps_time_buf), "%H:%M:%S", &ts);
+  gpstime = dispState.Clock - dispState.UTCOffset;
+  ts = *gmtime (&gpstime);
+  strftime (utc_time_buf, sizeof (utc_time_buf), "%H:%M:%S", &ts);
 
-  return buf;
 }
+
+static int lncnt = 0;		// Counter for the Header refresher
 
 void
 displayRequestRefresh ()
@@ -133,8 +138,6 @@ displayRequestRefresh ()
   const char *str2;		// Status 2
   char nl;			// Line feed
   char voltage[10];		// The voltage on the oscillator
-
-  static int lncnt = 0;		// Conter for the Header refresher
 
   const char *const statusLabels[] = {
     "Locked", NULL,		// 0
@@ -198,33 +201,61 @@ displayRequestRefresh ()
     {
       sprintf (voltage, "%5.2f", d->Vset_uV);
     }
-  if (lncnt == 0)
-    {
-      // The optut:
-      // GPS time, #Sat, Voltage, dV, Phase, Offset, PPS Status, PDOP, Locked time, Status
-      // LOCK GPS time Sat  Voltage    dV Pha/Off  P/T  PDOP LokTM Status
-      // CLK: 17:24:55  7, 34804.64  0.00  -7   0  0 0  0.38,    0  22: Wait B 3/3
-      printf
-	("LOCK GPS time Sat  Voltage    dV Pha/Off P:T PDOP LockT Status    Holdover\n");
-    }
-  lncnt = ++lncnt % HDRCNT;
-//      printf("GPS time, #Sat, Voltage, dV, Phase, Offset, PPS, TRA, PDOP, Locked, Status,   HoldOver\n");
-  printf ("%s %8s %2d, %s %+4.2f%4d %3d %1d:%1d %3.2f %5d %2d: %s %s %d\r",
-//      printf("%s %8s GPS, NS %2d, Vo %s dV %5.2f, Ph %4d of %3d, PPS %1d, DOP %5.2f, Lck %4d, St %2d: %s %s\r",
-	  LockOn,
-	  convert_gps_time (),
-	  d->NumSats,
-	  voltage,
-	  (lastvoltage ? d->Vset_uV - lastvoltage : 0),
-	  d->PPSPhase,
-	  d->PPSOffset,
-	  d->PPSStatus,
-	  d->TRAIM,
-	  d->DOP,
-	  (d->LockStartClock ? d->Clock - d->LockStartClock : 0),
-	  d->status, str, str2, d->HoldOver);
 
-  lastvoltage = d->Vset_uV;
+  convert_gps_time ();
+
+  if (ppsdbgReceived)
+    {
+      if (lncnt == 0)
+	{
+	  // The optut:
+	  // GPS time, #Sat, Voltage, dV, Phase, Offset, PPS Status, PDOP, Locked time, Status, HoldOver
+	  // LOCK GPS time Sat  Voltage    dV Pha/Off  P/T  PDOP LockT Status NoldOver
+	  // CLK: 17:24:55  7, 34804.64  0.00  -7   0  0 0  0.38,    0  22: Wait B 3/3  22
+	  printf
+	    ("LOCK GPS time Sat  Voltage    dV Pha/Off P:T PDOP LockT Status    Holdover\n");
+	}
+      lncnt = ++lncnt % HDRCNT;
+//	("LOCK GPS time Sat  Voltage    dV Pha/Off P:T PDOP LockT Status    Holdover\n");
+      printf
+	("%s %8s %2d, %s %+4.2f%4d %3d %1d:%1d %3.2f %5d %2d: %s %s %d\r",
+	 LockOn,
+	 gps_time_buf,
+	 d->NumSats,
+	 voltage,
+	 (lastvoltage ? d->Vset_uV - lastvoltage : 0),
+	 d->PPSPhase,
+	 d->PPSOffset,
+	 d->PPSStatus,
+	 d->TRAIM,
+	 d->DOP,
+	 (d->LockStartClock ? d->Clock - d->LockStartClock : 0),
+	 d->status, str, str2, d->HoldOver);
+
+      lastvoltage = d->Vset_uV;
+    }
+  else
+    {
+      if (lncnt == 0)
+	{
+	  // The optut:
+	  // GPS time, #Sat, UTC time, PDOP, Locked time, Status, HoldOver
+	  // LOCK GPS time Sat UTC time  PDOP LokTM Status
+	  // CLK: 17:24:55  3, 17:24:37  0.38     0 22: Wait B 3/3   0
+	  printf
+	    ("LOCK GPS time Sat UTC time   POD LockT Status      Holdover\n");
+	}
+      lncnt = ++lncnt % HDRCNT;
+//	     ("LOCK GPS time Sat UTC time   POD LockT Status      Holdover\n");
+      printf ("%s %8s %2d, %8s  %3.2f %5d %2d: %s %s %d\r",
+	      LockOn,
+	      gps_time_buf,
+	      d->NumSats,
+	      utc_time_buf,
+	      d->DOP,
+	      (d->LockStartClock ? d->Clock - d->LockStartClock : 0),
+	      d->status, str, str2, d->HoldOver);
+    }
   fflush (stdout);
 }
 
@@ -292,25 +323,40 @@ HandleCommand ()
       if (clockNoPPSDBG >= 3)
 	{
 	  clockNoPPSDBG = 0;
-	  ppsdbgReceived = 0;
+//        ppsdbgReceived = 0;
 //                      notePr(INFO_PPSDBG1);
 //                      UART_Tx("$PPSDBG 1\r\n");
 	}
       HandleClockMsg ();
-      if (!ppsdbgReceived)
-	displayRequestRefresh ();
+      if (ppsdbgReceived != 0 && (dispState.Clock - ppsdbgReceived) > 3)
+	{
+	  ppsdbgReceived = 0;
+	  lncnt = 0;		// print header
+	}
+      displayRequestRefresh ();
     }
   else if (!strncmp (cmdBuf, RSP_PPSDBG, sizeof (RSP_PPSDBG) - 1))
     {
       HandlePPSDbgMsg ();
-      ppsdbgReceived = 1;
+      if (ppsdbgReceived == 0)
+	{
+	  lncnt = 0;		// print header
+	}
+      if (ppsdbgReceived < dispState.Clock)
+	{
+	  ppsdbgReceived = dispState.Clock;
+	}
       displayRequestRefresh ();
     }
   else if (!strncmp (cmdBuf, RSP_STATUS, sizeof (RSP_STATUS) - 1))
     {
       HandleStatusMsg ();
-      if (!ppsdbgReceived)
-	displayRequestRefresh ();
+      if (ppsdbgReceived != 0 && (dispState.Clock - ppsdbgReceived) > 3)
+	{
+//      ppsdbgReceived = 0;
+//     lncnt = 0;  // print header
+	}
+      displayRequestRefresh ();
     }
   else if (!strncmp (cmdBuf, RSP_EXTSTATUS, sizeof (RSP_EXTSTATUS) - 1))
     {
@@ -357,9 +403,11 @@ HandleCommand ()
     }
   else if (!strncmp (cmdBuf, RSP_SAT, sizeof (RSP_SAT) - 1))
     {
+      printf ("\n%sNEW:Ch,Sat,Elv,Azm,SNR.\n", cmdBuf);
     }
   else if (!strncmp (cmdBuf, RSP_WSAT, sizeof (RSP_WSAT) - 1))
     {
+      printf ("\nNEW: %s", cmdBuf);
     }
   else
     {
