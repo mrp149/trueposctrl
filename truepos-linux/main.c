@@ -15,15 +15,14 @@ UART_HandleTypeDef TP_UART;
 /* USER CODE END 0 */
 
 int
-main (void)
+main(void)
 {
 
-  /* Infinite loop */
-  for (;;)
-    {
-      TruePosInit (&TP_UART, TP_UART_ID);
-      TruePosReadBuffer ();
-      TruePosStop ();
-      sleep (1);		// Just make sure UART is settled
+/* Infinite loop */
+    for (;;) {
+        TruePosInit(&TP_UART, TP_UART_ID);
+        TruePosReadBuffer();
+        TruePosStop();
+        sleep(1);               // Just make sure UART is settled
     }
 }
