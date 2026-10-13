@@ -1,6 +1,6 @@
  NEW COMMAND LIST
 
- Based on FW 12.0.1 $Revision: 1.7 $ on $Date: 2022/11/06 02:16:00 $ UTC
+ Based on FW 12.0.1 $Revision: 1.9 $ on $Date: 2026/10/13 00:13:31 $ UTC
 
 
 ---- Commands:
@@ -180,6 +180,11 @@
  6: PPS status from $PFEC,GPrrm message
  7: TRAIM status from $PFEC,GPrrm message
  8: Always 0.0 - temperature on 12.1.1 firmware
+ Note:
+    To adjust the rolled-over date from a FURUNO receiver, you need to add a fixed offset of exactly 1,024 weeks (which equals 7,168 days).
+    1,024 weeks × 7 days × 24 hours × 60 minutes × 60 seconds = 619315200 seconds and add fixed offset of exactly 315,964,800 seconds.
+    Combined (619315200 + 315964800 = 935280000): This places your baseline starting point at August 22, 1999, which corresponds exactly to the first
+    historical FURUNO GPS Week Rollover event.
 
  $EXTSTATUS  0 1 01.00 38.40
  1: SurveyStatus [0=normal, 1=surveying]

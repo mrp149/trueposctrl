@@ -109,7 +109,7 @@ statusChanged()
 }
 
 static char gps_time_buf[10];
-static char utc_time_buf[10];
+static char utc_time_buf[20];
 
 void
 convert_gps_time()
@@ -121,9 +121,16 @@ convert_gps_time()
 // Format time, "hh:mm:ss" FURUNO does not back up the date after Sept. 2022
     ts = *gmtime(&gpstime);
     strftime(gps_time_buf, sizeof(gps_time_buf), "%H:%M:%S", &ts);
-    gpstime = dispState.Clock - dispState.UTCOffset;
+// To adjust the rolled-over date from a FURUNO receiver, you need to add
+// a fixed offset of exactly 1,024 weeks (which equals 7,168 days or
+// 1,024 weeks × 7 days × 24 hours × 60 minutes × 60 seconds = 619315200 seconds
+// and add fixed offset of exactly 315,964,800 seconds.
+// Combined (619315200 + 315964800 = 935280000): This places your baseline
+// starting point at August 22, 1999, which corresponds exactly to the first
+// historical FURUNO GPS Week Rollover event.
+    gpstime = 619315200 + 315964800 + dispState.Clock - dispState.UTCOffset;
     ts = *gmtime(&gpstime);
-    strftime(utc_time_buf, sizeof(utc_time_buf), "%H:%M:%S", &ts);
+    strftime(utc_time_buf, sizeof(utc_time_buf), "%F %H:%M:%S", &ts);
 
 }
 
@@ -223,11 +230,11 @@ displayRequestRefresh()
         // GPS time, #Sat, UTC time, PDOP, Locked time, Status, HoldOver
         // LOCK GPS time Sat UTC time  PDOP LokTM Status
         // CLK: 17:24:55  3, 17:24:37  0.38     0 22: Wait B 3/3   0
-            printf("LOCK GPS time Sat UTC time   POD LockT Status      Holdover\n");
+            printf("LOCK GPS time Sat    UTC time           POD LockT Status      Holdover\n");
         }
         lncnt = ++lncnt % HDRCNT;
-//           ("LOCK GPS time Sat UTC time   POD LockT Status      Holdover\n");
-        printf("%s %8s %2d, %8s  %3.2f %5d %2d: %s %s %d\r",
+//           ("LOCK GPS time Sat UTC time           POD LockT Status      Holdover\n");
+        printf("%s %8s %2d, %18s  %3.2f %5d %2d: %s %s %d\r",
                LockOn,
                gps_time_buf,
                d->NumSats,
@@ -345,9 +352,9 @@ HandleCommand()
         }
     } else if (!strncmp(cmdBuf, RSP_KALDBG, sizeof(RSP_KALDBG) - 1)) {
     } else if (!strncmp(cmdBuf, RSP_SAT, sizeof(RSP_SAT) - 1)) {
-        printf("\n%sNEW:Ch,Sat,Elv,Azm,SNR.\n", cmdBuf);
+        printf("\n%sNEW:Ch,Sat,Elv,Azm,SNR @ %s\n", cmdBuf, utc_time_buf);
     } else if (!strncmp(cmdBuf, RSP_WSAT, sizeof(RSP_WSAT) - 1)) {
-        printf("\nNEW: %s", cmdBuf);
+        printf("\n%sNEW:Ch,Sat,Elv,Azm,SNR @ %s\n", cmdBuf, utc_time_buf);
     } else {
     // Need to ALWAYS let a \0 be at the end, due to multithreading
         strncpy(dispState.LastMsg, cmdBuf, LastMsg_LEN - 1);
